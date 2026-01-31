@@ -1,0 +1,9 @@
+export enum Role {
+  ADMIN = 'ADMIN',
+  DIRECTOR = 'DIRECTOR',
+  ZAM_DIRECTOR = 'ZAM_DIRECTOR',
+  EMPLOYEE = 'EMPLOYEE',
+  VIEWER = 'VIEWER',
+}
+
+
