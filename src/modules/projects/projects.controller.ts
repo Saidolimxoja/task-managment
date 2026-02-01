@@ -59,8 +59,6 @@ export class ProjectsController {
   deleteProject(@Param('id')projectId: string, ){
 
   }
-
-
 }
 
 
