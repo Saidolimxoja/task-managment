@@ -3,6 +3,8 @@
 POST   /auth/register
 POST   /auth/login
 ```
+---
+
 ## 👥 USERS
 ```bash
 GET    /users                    # Все пользователи (ADMIN, DIRECTOR)
@@ -10,6 +12,9 @@ GET    /users/:id                # Профиль пользователя (Вс
 PATCH  /users/:id                # Обновить пользователя (ADMIN)
 DELETE /users/:id                # Удалить пользователя (ADMIN)
 ```
+
+---
+
 ## 📁 PROJECTS
 ```bash
 GET    /projects                 # Мои проекты (Все роли)
@@ -21,6 +26,9 @@ POST   /projects/:id/members     # Добавить участника (ADMIN, O
 DELETE /projects/:id/members/:userId  # Удалить участника (ADMIN, Owner)
 GET    /projects/:id/statistics  # Статистика проекта (DIRECTOR, ADMIN, Owner)
 ```
+
+---
+
 ## ✅ TASKS
 ```bash
 GET    /projects/:projectId/tasks              # Все задачи проекта
@@ -35,6 +43,9 @@ PATCH  /tasks/:id/assign                       # Назначить исполн
 GET    /tasks/my/assigned                      # Мои назначенные задачи
 GET    /tasks/my/created                       # Мои созданные задачи
 ```
+
+---
+
 ## 💬 COMMENTS
 ```bash
 GET    /tasks/:taskId/comments   # Комментарии к задаче
