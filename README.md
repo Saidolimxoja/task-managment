@@ -1,15 +1,22 @@
-🔐 AUTH (Публичные)
+## 🔐 AUTH (Публичные)
+```bash
 POST   /auth/register
 POST   /auth/login
+```
+---
 
-👥 USERS
+## 👥 USERS
+```bash
 GET    /users                    # Все пользователи (ADMIN, DIRECTOR)
 GET    /users/:id                # Профиль пользователя (Все роли)
 PATCH  /users/:id                # Обновить пользователя (ADMIN)
 DELETE /users/:id                # Удалить пользователя (ADMIN)
+```
 
-📁 PROJECTS
+---
 
+## 📁 PROJECTS
+```bash
 GET    /projects                 # Мои проекты (Все роли)
 POST   /projects                 # Создать проект (ADMIN, DIRECTOR, ZAM_DIRECTOR)
 GET    /projects/:id             # Детали проекта (Участники + DIRECTOR, ADMIN)
@@ -18,8 +25,12 @@ DELETE /projects/:id             # Удалить проект (ADMIN, Owner п�
 POST   /projects/:id/members     # Добавить участника (ADMIN, Owner, ZAM_DIRECTOR)
 DELETE /projects/:id/members/:userId  # Удалить участника (ADMIN, Owner)
 GET    /projects/:id/statistics  # Статистика проекта (DIRECTOR, ADMIN, Owner)
+```
 
-✅ TASKS
+---
+
+## ✅ TASKS
+```bash
 GET    /projects/:projectId/tasks              # Все задачи проекта
 POST   /projects/:projectId/tasks              # Создать задачу (ADMIN, ZAM_DIRECTOR, EMPLOYEE)
 GET    /tasks/:id                              # Детали задачи
@@ -31,9 +42,14 @@ PATCH  /tasks/:id/reject                       # Отклонить задачу
 PATCH  /tasks/:id/assign                       # Назначить исполнителя (ADMIN, ZAM_DIRECTOR, Creator)
 GET    /tasks/my/assigned                      # Мои назначенные задачи
 GET    /tasks/my/created                       # Мои созданные задачи
+```
 
-💬 COMMENTS
+---
+
+## 💬 COMMENTS
+```bash
 GET    /tasks/:taskId/comments   # Комментарии к задаче
 POST   /tasks/:taskId/comments   # Добавить комментарий (Все кроме VIEWER)
 PATCH  /comments/:id             # Редактировать комментарий (Author, ADMIN)
 DELETE /comments/:id             # Удалить комментарий (Author, ADMIN)
+```
