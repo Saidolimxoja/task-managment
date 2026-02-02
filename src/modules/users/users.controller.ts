@@ -22,8 +22,10 @@ import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-
-  @ApiOperation({ summary: 'Получить ВСЕХ Пользователей даже ADMIN с хешированными паролями всех' })
+  @ApiOperation({
+    summary:
+      'Получить ВСЕХ Пользователей даже ADMIN с хешированными паролями всех',
+  })
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
@@ -34,19 +36,27 @@ export class UsersController {
 
   //get user by id yourself can ALL USERS ALL ROLES
   @ApiOperation({ summary: 'Получить Данные о себе' })
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
   }
 
   //UPGRATE ONLY ADMIN
-  @ApiOperation({ summary: 'Обновление Пользователя но только СВОЁ чужого нельзя' })
+  @ApiOperation({
+    summary: 'Обновление Пользователя но только СВОЁ чужого нельзя',
+  })
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto,@Request() req ) {
-    const userRole = req.user.role
-    return this.usersService.update(id, updateUserDto,userRole);
+  update(
+    @Param('id') id: string,
+    @Body() updateUserDto: UpdateUserDto,
+    @Request() req,
+  ) {
+    const userRole = req.user.role;
+    return this.usersService.update(id, updateUserDto, userRole);
   }
 
   @ApiOperation({ summary: 'Активировать Пользователя' })
@@ -77,4 +87,3 @@ export class UsersController {
     return this.usersService.remove(id);
   }
 }
-

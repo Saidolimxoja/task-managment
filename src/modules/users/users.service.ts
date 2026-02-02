@@ -25,9 +25,19 @@ export class UsersService {
   }
 
   async findOne(id: string) {
-    const user = await this.knex('users').where({ id }).select('*').first();
-
-    return user;
+    try {
+      const user = await this.knex('users').where({ id }).select('*').first();
+      if (user == undefined) {
+        throw new ForbiddenException(`Не существует пользователь с ID: ${id}`);
+      }
+      return user;
+    } catch (error) {
+     
+      if (error.code === '22P02' && error.message.includes('uuid')) {
+        throw new BadRequestException('Неверный формат идентификатора');
+      }
+      throw error; 
+    }
   }
 
   async update(id: string, updateUserDto: UpdateUserDto, userRole: string) {

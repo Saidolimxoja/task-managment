@@ -52,6 +52,7 @@ export class ProjectsService {
           userId,
         );
       })
+      .whereNull('p.end_date')
       .where(function () {
         this.where('p.owner_id ', userId).orWhere('pm.user_id', userId);
       })
@@ -88,7 +89,7 @@ export class ProjectsService {
         name: dto.name,
         description: dto.description ?? null,
         code: dto.code,
-        start_date: dto.start_date ?? null,
+        start_date: new Date(),
         end_date: dto.end_date ?? null,
         owner_id: user.id,
       })
@@ -121,15 +122,18 @@ export class ProjectsService {
   }
 
   async deleteProject(projectId: string, user: any) {
-    const existing = await this.knex('projects')
+    const project = await this.knex('projects')
       .where({ id: projectId })
       .first();
 
-    if (!existing) {
-      throw new ForbiddenException(`Не существует данный ${projectId} Проект`);
+    if (!project) {
+      throw new ForbiddenException('Проект не существует');
     }
 
-    const isOwner = existing.owner_id === user.id;
+    if (project.end_date) {
+      throw new ForbiddenException('Проект уже закрыт');
+    }
+    const isOwner = project.owner_id === user.id;
     const isAdmin = user.role === 'ADMIN';
 
     if (!isOwner && !isAdmin) {
@@ -138,13 +142,13 @@ export class ProjectsService {
 
     // 3. Soft delete
     await this.knex('projects').where({ id: projectId }).update({
-      is_deleted: true,
+      end_date: new Date(),
       updated_at: new Date(),
     });
 
     return {
       success: true,
-      message: 'Проект удалён',
+      message: 'Проект Закрыт',
     };
   }
 

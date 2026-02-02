@@ -50,6 +50,7 @@ export class ProjectsController {
     summary: 'Добавить в Проект других пользователей',
   })
   @Post(':id/members')
+  @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN, Role.DIRECTOR, Role.ZAM_DIRECTOR)
   addMember(
@@ -63,6 +64,7 @@ export class ProjectsController {
     summary: 'Удалить Проект Только Админ и Директор',
   })
   @Delete(':id')
+  @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN, Role.ADMIN)
   deleteProject(@Param('id') projectId: string, @CurrentUser() user: any) {
@@ -75,6 +77,7 @@ export class ProjectsController {
       'Доступно для ролей: ADMIN, DIRECTOR (OWNER), ZAM_DIRECTOR (MANAGER)',
   })
   @Delete(':projectId/members/:userId')
+  @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN, Role.DIRECTOR, Role.ZAM_DIRECTOR)
   deletemember(
@@ -90,7 +93,7 @@ export class ProjectsController {
 POST   /api/v1/projects                 # Создать проект (ADMIN, DIRECTOR, ZAM_DIRECTOR)  +++++
 GET    /api/v1/projects/:id             # Детали проекта (Участники + DIRECTOR, ADMIN)
 PATCH  /api/v1/projects/:id             # Обновить проект (ADMIN, Owner проекта)
-DELETE /api/v1/projects/:id             # Удалить проект (ADMIN, Owner проекта)
+DELETE /api/v1/projects/:id             # Удалить проект (ADMIN, Owner проекта)   +++++
 POST   /api/v1/projects/:id/members     # Добавить участника (ADMIN, Owner, ZAM_DIRECTOR)  +++++++
-DELETE /api/v1/projects/:id/members/:userId  # Удалить участника (ADMIN, Owner)
+DELETE /api/v1/projects/:id/members/:userId  # Удалить участника (ADMIN, Owner)   +++++
 GET    /api/v1/projects/:id/statistics  # Статистика проекта (DIRECTOR, ADMIN, Owner) */

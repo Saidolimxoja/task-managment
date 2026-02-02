@@ -107,12 +107,6 @@ export class AuthService {
     };
   }
 
-  async getusers() {
-    const result = await this.knex('users').select('*').returning('*');
-
-    console.log(result);
-    return result;
-  }
 
   async validateUser(id: string) {
     const user = await this.knex('users')

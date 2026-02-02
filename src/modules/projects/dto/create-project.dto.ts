@@ -29,9 +29,6 @@ export class CreateProjectDto {
   @IsOptional()
   status?: ProjectStatus = ProjectStatus.ACTIVE;
 
-  @IsOptional()
-  @IsDateString()
-  start_date?: string;
 
   @IsOptional()
   @IsDateString()
