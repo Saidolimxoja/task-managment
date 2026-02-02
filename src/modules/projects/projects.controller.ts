@@ -19,6 +19,7 @@ import { Role } from 'src/common/enums/role.enum';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { ProjectMembers } from 'src/common/enums/project-members.enum';
+import { userInfo } from 'node:os';
 
 @Controller('projects')
 export class ProjectsController {
@@ -41,10 +42,13 @@ export class ProjectsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN, Role.DIRECTOR)
   @Post()
-  create(@Body() createProjectDto: CreateProjectDto, @CurrentUser() user) {
+  create(@Body() createProjectDto: CreateProjectDto, @CurrentUser() user: any) {
     return this.projectsService.createProject(createProjectDto, user);
   }
 
+  @ApiOperation({
+    summary: 'Добавить в Проект других пользователей',
+  })
   @Post(':id/members')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN, Role.DIRECTOR, Role.ZAM_DIRECTOR)
@@ -55,14 +59,32 @@ export class ProjectsController {
     return this.projectsService.addMember(projectId, dto.userId, dto.role);
   }
 
+  @ApiOperation({
+    summary: 'Удалить Проект Только Админ и Директор',
+  })
   @Delete(':id')
-  deleteProject(@Param('id')projectId: string, ){
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.ADMIN)
+  deleteProject(@Param('id') projectId: string, @CurrentUser() user: any) {
+    return this.projectsService.deleteProject(projectId, user);
+  }
 
+  @ApiOperation({
+    summary: 'Удалить Участника из Проекта',
+    description:
+      'Доступно для ролей: ADMIN, DIRECTOR (OWNER), ZAM_DIRECTOR (MANAGER)',
+  })
+  @Delete(':projectId/members/:userId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.DIRECTOR, Role.ZAM_DIRECTOR)
+  deletemember(
+    @Param('projectId') projectId: string,
+    @Param('userId') UserId: string,
+    @CurrentUser() user,
+  ) {
+    return this.projectsService.deleteMember(projectId, UserId, user);
   }
 }
-
-
-
 
 /* GET    /api/v1/projects                 # Мои проекты (Все роли)      ++++++
 POST   /api/v1/projects                 # Создать проект (ADMIN, DIRECTOR, ZAM_DIRECTOR)  +++++

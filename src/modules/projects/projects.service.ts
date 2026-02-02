@@ -1,6 +1,8 @@
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { Knex } from 'knex';
@@ -13,6 +15,10 @@ export class ProjectsService {
 
   private get knex(): Knex {
     return this.knexService.knex;
+  }
+
+  private async removeMemberById(memberId: string) {
+    await this.knex('project_members').where({ id: memberId }).del();
   }
 
   async getAllProjects(userId: string) {
@@ -75,8 +81,8 @@ export class ProjectsService {
     };
   }
 
+  //CREATE PROJECT
   async createProject(dto: CreateProjectDto, user: { id: string; role: Role }) {
-    // 🧠 2. Создание проекта
     const [project] = await this.knex('projects')
       .insert({
         name: dto.name,
@@ -88,7 +94,6 @@ export class ProjectsService {
       })
       .returning('*');
 
-    // ✅ 3. Возврат
     return {
       success: true,
       message: 'Проект успешно создан',
@@ -96,9 +101,8 @@ export class ProjectsService {
     };
   }
 
+  //ADD MEMBER ONLY (ADMNIN>DIRECTOR>ZAM_DIRECTOR)
   async addMember(projectId: string, userId: string, role: string) {
-
-
     const existing = await this.knex('project_members')
       .where({ project_id: projectId, user_id: userId })
       .first();
@@ -114,5 +118,107 @@ export class ProjectsService {
     };
     await this.knex('project_members').insert(record);
     return { success: true, message: 'Участник добавлен', record };
+  }
+
+  async deleteProject(projectId: string, user: any) {
+    const existing = await this.knex('projects')
+      .where({ id: projectId })
+      .first();
+
+    if (!existing) {
+      throw new ForbiddenException(`Не существует данный ${projectId} Проект`);
+    }
+
+    const isOwner = existing.owner_id === user.id;
+    const isAdmin = user.role === 'ADMIN';
+
+    if (!isOwner && !isAdmin) {
+      throw new ForbiddenException('Нет прав на удаление проекта');
+    }
+
+    // 3. Soft delete
+    await this.knex('projects').where({ id: projectId }).update({
+      is_deleted: true,
+      updated_at: new Date(),
+    });
+
+    return {
+      success: true,
+      message: 'Проект удалён',
+    };
+  }
+
+  async deleteMember(
+    projectId: string,
+    targetUserId: string,
+    currentUser: {
+      id: string;
+      role: 'ADMIN' | 'DIRECTOR' | 'ZAM_DIRECTOR' | 'EMPLOYEE' | 'VIEWER';
+    },
+  ) {
+    const project = await this.knex('projects')
+      .where({ id: projectId })
+      .first();
+
+    if (!project) {
+      throw new NotFoundException('Проект не найден');
+    }
+
+    if (project.owner_id === targetUserId) {
+      throw new ForbiddenException('Нельзя удалить владельца проекта');
+    }
+
+    const member = await this.knex('project_members')
+      .where({
+        project_id: projectId,
+        user_id: targetUserId,
+      })
+      .first();
+
+    if (!member) {
+      throw new NotFoundException(
+        'Пользователь не является участником проекта',
+      );
+    }
+
+    // 4. ADMIN — всегда можно
+    if (currentUser.role === 'ADMIN') {
+      await this.removeMemberById(member.id);
+      return { success: true, message: 'Участник удалён из проекта' };
+    }
+
+    // 5. OWNER проекта (DIRECTOR)
+    if (project.owner_id === currentUser.id) {
+      await this.removeMemberById(member.id);
+      return { success: true, message: 'Участник удалён из проекта' };
+    }
+
+    // 6. ZAM_DIRECTOR → ТОЛЬКО если он MANAGER в этом проекте
+    if (currentUser.role === 'ZAM_DIRECTOR') {
+      const manager = await this.knex('project_members')
+        .where({
+          project_id: projectId,
+          user_id: currentUser.id,
+          role: 'MANAGER',
+        })
+        .first();
+
+      if (!manager) {
+        throw new ForbiddenException(
+          'Заместитель не является менеджером проекта',
+        );
+      }
+
+      if (!['MEMBER', 'VIEWER'].includes(member.role)) {
+        throw new ForbiddenException(
+          'Менеджер может удалять только работников или наблюдателей',
+        );
+      }
+
+      await this.removeMemberById(member.id);
+      return { success: true, message: 'Участник удалён из проекта' };
+    }
+
+    throw new ForbiddenException('Недостаточно прав для удаления участника');
   }
 }

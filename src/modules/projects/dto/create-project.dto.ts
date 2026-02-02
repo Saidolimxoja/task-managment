@@ -1,5 +1,4 @@
-// create-project.dto.ts
-import { IsString, IsOptional, IsEnum, IsDateString, isString } from 'class-validator';
+import { IsString, IsOptional, IsEnum, IsDateString} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { ProjectStatus } from 'src/common/enums/project-status.enum';
 

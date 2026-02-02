@@ -4,6 +4,8 @@ import {
   ExecutionContext,
   Injectable,
   Logger,
+  ForbiddenException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from '../decorators/roles.decorator';
@@ -11,7 +13,8 @@ import { Role } from '../enums/role.enum';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
-  private logger = new Logger(RolesGuard.name);
+  private readonly logger = new Logger(RolesGuard.name);
+
   constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
@@ -20,35 +23,36 @@ export class RolesGuard implements CanActivate {
       context.getClass(),
     ]);
 
-    this.logger.log('🔒 Required roles:', requiredRoles);
+    this.logger.debug(`🔒 Required roles: ${requiredRoles}`);
 
-    if (!requiredRoles) {
-      this.logger.log('✅ Не требуеться РОль для пользования этим Сервиом');
+    if (!requiredRoles || requiredRoles.length === 0) {
+      this.logger.debug('✅ Roles not required');
       return true;
     }
 
     const request = context.switchToHttp().getRequest();
     const user = request.user;
 
-    this.logger.log('👤 User from request:', user);
-    this.logger.log('👤 User role:', user?.role);
-    this.logger.log('👤 Required roles:', requiredRoles);
+    if (!user) {
+      this.logger.warn('❌ User not found in request');
+      throw new UnauthorizedException('Пользователь не аутентифицирован');
+    }
 
-    if (!user || !user.role) {
-      this.logger.warn('❌ No user or role found');
-      return false;
+    if (!user.role) {
+      this.logger.warn('❌ User has no role');
+      throw new ForbiddenException('У пользователя не назначена роль');
     }
 
     const hasRole = requiredRoles.includes(user.role);
-    this.logger.log(`✅ Role check result: ${hasRole}`);
+
+    this.logger.debug(`👤 User role: ${user.role}, access: ${hasRole}`);
 
     if (!hasRole) {
-      this.logger.warn(
-        `❌ User role "${user.role}" not in required roles:`,
-        requiredRoles,
+      throw new ForbiddenException(
+        `Доступ запрещён. Требуемые роли: ${requiredRoles.join(', ')}`,
       );
     }
 
-    return hasRole;
+    return true;
   }
 }

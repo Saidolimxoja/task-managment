@@ -22,10 +22,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   }
 
   async validate(payload: JwtPayload) {
-
     const user = await this.authService.validateUser(payload.sub);
-
-
 
     if (!user) {
       console.log('❌ User NOT found!'); // 👈 ДОБАВЬТЕ
@@ -40,4 +37,3 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     };
   }
 }
-

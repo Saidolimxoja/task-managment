@@ -16,7 +16,7 @@ export class RegisterDto {
   @IsString()
   fullName: string;
 
-  @ApiProperty({ example: [Role.EMPLOYEE , Role.VIEWER] })
+  @ApiProperty({ example: [Role.EMPLOYEE, Role.VIEWER] })
   @IsEnum(Role)
   role: Role = Role.EMPLOYEE;
 }
