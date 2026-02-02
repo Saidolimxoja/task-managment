@@ -8,6 +8,7 @@ import { CreateProjectDto } from './dto/create-project.dto';
 import { Knex } from 'knex';
 import { KnexService } from 'src/database/knex.service';
 import { Role } from 'src/common/enums/role.enum';
+import { ProjectStatus } from 'src/common/enums/project-status.enum';
 
 @Injectable()
 export class ProjectsService {
@@ -21,7 +22,8 @@ export class ProjectsService {
     await this.knex('project_members').where({ id: memberId }).del();
   }
 
-  async getAllProjects(userId: string) {
+  async getAllProjects(userId: string, userRole: string) {
+    // 1. Получаем проекты пользователя
     const projects = await this.knex('projects as p')
       .select(
         'p.*',
@@ -30,7 +32,7 @@ export class ProjectsService {
         this.knex.raw(
           `
         CASE
-          WHEN p.owner_id  = ? THEN 'OWNER'
+          WHEN p.owner_id = ? THEN 'OWNER'
           WHEN pm.role IS NOT NULL THEN pm.role
           ELSE 'MEMBER'
         END AS user_role
@@ -44,7 +46,7 @@ export class ProjectsService {
           `(SELECT COUNT(*) FROM tasks WHERE project_id = p.id AND status = 'DONE') AS completed_tasks`,
         ),
       )
-      .leftJoin('users as u', 'p.owner_id ', 'u.id')
+      .leftJoin('users as u', 'p.owner_id', 'u.id')
       .leftJoin('project_members as pm', function () {
         this.on('pm.project_id', '=', 'p.id').andOnVal(
           'pm.user_id',
@@ -54,30 +56,80 @@ export class ProjectsService {
       })
       .whereNull('p.end_date')
       .where(function () {
-        this.where('p.owner_id ', userId).orWhere('pm.user_id', userId);
+        this.where('p.owner_id', userId).orWhere('pm.user_id', userId);
       })
       .orderBy('p.created_at', 'desc');
 
-    console.log(projects);
+    // 2. Если ADMIN или DIRECTOR - получаем участников
+    let membersByProject = new Map();
+
+    if (userRole === 'ADMIN' || userRole === 'DIRECTOR') {
+      const projectIds = projects.map((p) => p.id);
+
+      if (projectIds.length > 0) {
+        // Один запрос для всех участников всех проектов
+        const allMembers = await this.knex('project_members as pm')
+          .select(
+            'pm.project_id',
+            'pm.user_id',
+            'pm.role as member_role',
+            'pm.joined_at',
+            'u.full_name',
+            'u.email',
+          )
+          .leftJoin('users as u', 'pm.user_id', 'u.id')
+          .whereIn('pm.project_id', projectIds)
+          .orderBy('pm.joined_at', 'asc');
+
+        // Группируем по project_id
+        for (const member of allMembers) {
+          if (!membersByProject.has(member.project_id)) {
+            membersByProject.set(member.project_id, []);
+          }
+          membersByProject.get(member.project_id).push({
+            user_id: member.user_id,
+            full_name: member.full_name,
+            email: member.email,
+            role: member.member_role,
+            joined_at: member.joined_at,
+          });
+        }
+      }
+    }
+
+    // 3. Формируем ответ
     return {
       success: true,
       message: projects.length
         ? 'Проекты успешно получены'
         : 'У вас пока нет проектов',
-      projects: projects.map((p) => ({
-        id: p.id,
-        title: p.title,
-        description: p.description,
-        status: p.status,
-        user_role: p.user_role,
-        task_count: Number(p.task_count) || 0,
-        completed_tasks: Number(p.completed_tasks) || 0,
-        owner_details: {
-          full_name: p.creator_name,
-        },
-        created_at: p.created_at,
-        updated_at: p.updated_at,
-      })),
+      projects: projects.map((p) => {
+        const baseProject = {
+          id: p.id,
+          title: p.title,
+          description: p.description,
+          status: p.status,
+          user_role: p.user_role,
+          task_count: Number(p.task_count) || 0,
+          completed_tasks: Number(p.completed_tasks) || 0,
+          owner_details: {
+            full_name: p.creator_name,
+            email: p.creator_email,
+          },
+          created_at: p.created_at,
+          updated_at: p.updated_at,
+        };
+
+        // Добавляем members только для ADMIN и DIRECTOR
+        if (userRole === 'ADMIN' || userRole === 'DIRECTOR') {
+          return {
+            ...baseProject,
+            members: membersByProject.get(p.id) || [],
+          };
+        }
+
+        return baseProject;
+      }),
       total: projects.length,
     };
   }
@@ -142,6 +194,7 @@ export class ProjectsService {
 
     // 3. Soft delete
     await this.knex('projects').where({ id: projectId }).update({
+      status: ProjectStatus.ARCHIVED,
       end_date: new Date(),
       updated_at: new Date(),
     });

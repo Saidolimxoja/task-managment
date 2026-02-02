@@ -41,23 +41,22 @@ export class UsersService {
   }
 
   async update(id: string, updateUserDto: UpdateUserDto, userRole: string) {
-    // 1️⃣ Проверка существования (один раз)
+
     const existing = await this.knex('users').where({ id }).first();
     if (!existing) {
       throw new NotFoundException(`Пользователь с ID ${id} не найден`);
     }
 
-    // 2️⃣ Формируем updateData
     const updateData: any = {
       updated_at: this.knex.fn.now(),
     };
 
-    // 3️⃣ Админ может менять роль, остальные — нет
+
     if (userRole === Role.ADMIN && updateUserDto.role !== undefined) {
       updateData.role = updateUserDto.role;
     }
 
-    // 4️⃣ Общие поля (для всех)
+
     if (updateUserDto.fullName !== undefined) {
       updateData.full_name = updateUserDto.fullName;
     }

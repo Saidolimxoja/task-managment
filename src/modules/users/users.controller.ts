@@ -17,7 +17,9 @@ import { Role } from 'src/common/enums/role.enum';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 
+@UseGuards(JwtAuthGuard)
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
@@ -27,7 +29,7 @@ export class UsersController {
       'Получить ВСЕХ Пользователей даже ADMIN с хешированными паролями всех',
   })
   @ApiBearerAuth('access-token')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
   @Get()
   findAll() {
@@ -37,7 +39,6 @@ export class UsersController {
   //get user by id yourself can ALL USERS ALL ROLES
   @ApiOperation({ summary: 'Получить Данные о себе' })
   @ApiBearerAuth('access-token')
-  @UseGuards(JwtAuthGuard)
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
@@ -50,18 +51,17 @@ export class UsersController {
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
-  update(
+  updateUSER(
     @Param('id') id: string,
     @Body() updateUserDto: UpdateUserDto,
-    @Request() req,
+    @CurrentUser() user,
   ) {
-    const userRole = req.user.role;
-    return this.usersService.update(id, updateUserDto, userRole);
+    return this.usersService.update(id, updateUserDto, user.role);
   }
 
   @ApiOperation({ summary: 'Активировать Пользователя' })
   @ApiBearerAuth('access-token')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
   @Patch('activate/:id')
   ActivateUser(@Param('id') id: string) {
@@ -70,7 +70,7 @@ export class UsersController {
 
   @ApiOperation({ summary: 'Деактивировать Пользователя' })
   @ApiBearerAuth('access-token')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
   @Patch('deactivate/:id')
   DeactivateUSer(@Param('id') id: string) {
@@ -80,7 +80,7 @@ export class UsersController {
   //DELETE ONLY ADMIN
   @ApiOperation({ summary: 'Удалить Пользователя' })
   @ApiBearerAuth('access-token')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
   @Delete(':id')
   remove(@Param('id') id: string) {

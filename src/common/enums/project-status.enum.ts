@@ -1,5 +1,5 @@
-export enum ProjectStatus{
-    ACTIVE = 'ACTIVE',
-    ARCHIVED = ' ARCHIVED',
-    COMLETED = 'COMPLETED'
+export enum ProjectStatus {
+  ACTIVE = 'ACTIVE',
+  ARCHIVED = 'ARCHIVED',
+  COMLETED = 'COMPLETED',
 }
