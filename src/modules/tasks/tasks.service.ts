@@ -54,6 +54,7 @@ export class TasksService {
     // Проверяем доступ к проекту
     await this.checkProjectAccess(projectId, user.id);
 
+    const trx = await this.knex.transaction();
     // Проверяем, что проект активен
     const project = await this.knex('projects')
       .where('id', projectId)
@@ -69,27 +70,33 @@ export class TasksService {
       await this.checkUserInProject(projectId, dto.assigneeId);
     }
 
-    const [task] = await this.knex('tasks')
-      .insert({
-        id: this.knex.raw('gen_random_uuid()'),
-        title: dto.title,
-        description: dto.description,
-        status: dto.status || TaskStatus.TODO,
-        priority: dto.priority || TaskPriority.MEDIUM,
-        project_id: projectId,
-        creator_id: user.id,
-        assignee_id: dto.assigneeId || null,
-        deadline: dto.deadline || null,
-        created_at: new Date(),
-        updated_at: new Date(),
-      })
-      .returning('*');
+    try {
+      const [task] = await trx('tasks')
+        .insert({
+          id: this.knex.raw('gen_random_uuid()'),
+          title: dto.title,
+          description: dto.description,
+          status: dto.status || TaskStatus.TODO,
+          priority: dto.priority || TaskPriority.MEDIUM,
+          project_id: projectId,
+          creator_id: user.id,
+          assignee_id: dto.assigneeId || null,
+          deadline: dto.deadline || null,
+          created_at: new Date(),
+          updated_at: new Date(),
+        })
+        .returning('*');
 
-    return {
-      success: true,
-      message: 'Задача успешно создана',
-      task: await this.getTaskWithDetails(task.id),
-    };
+      await trx.commit();
+      return {
+        success: true,
+        message: 'Задача успешно создана',
+        task: await this.getTaskWithDetails(task.id),
+      };
+    } catch (error) {
+      await trx.rollback();
+      throw error;
+    }
   }
 
   // ================================
@@ -103,7 +110,6 @@ export class TasksService {
         'creator.email as creator_email',
         'assignee.full_name as assignee_name',
         'assignee.email as assignee_email',
-        'p.title as project_title',
       )
       .leftJoin('users as creator', 't.creator_id', 'creator.id')
       .leftJoin('users as assignee', 't.assignee_id', 'assignee.id')
@@ -188,12 +194,19 @@ export class TasksService {
       );
     }
 
-    await this.knex('tasks').where('id', taskId).delete();
+    const trx = await this.knex.transaction();
+    try {
+      await this.knex('tasks').where('id', taskId).delete();
+      await trx.commit();
 
-    return {
-      success: true,
-      message: 'Задача удалена',
-    };
+      return {
+        success: true,
+        message: 'Задача удалена',
+      };
+    } catch (error) {
+      await trx.rollback();
+      throw error;
+    }
   }
 
   // ================================
@@ -261,17 +274,25 @@ export class TasksService {
       );
     }
 
-    await this.knex('tasks').where('id', taskId).update({
-      status: TaskStatus.APPROVED,
-      completed_at: new Date(),
-      updated_at: new Date(),
-    });
+    const trx = await this.knex.transaction();
 
-    return {
-      success: true,
-      message: 'Задача утверждена и завершена',
-      task: await this.getTaskWithDetails(taskId),
-    };
+    try {
+      await this.knex('tasks').where('id', taskId).update({
+        status: TaskStatus.APPROVED,
+        completed_at: new Date(),
+        updated_at: new Date(),
+      });
+
+      await trx.commit();
+      return {
+        success: true,
+        message: 'Задача утверждена и завершена',
+        task: await this.getTaskWithDetails(taskId),
+      };
+    } catch (error) {
+      await trx.rollback();
+      throw error;
+    }
   }
 
   // ================================
@@ -329,16 +350,22 @@ export class TasksService {
     // Проверяем, что assignee является участником проекта
     await this.checkUserInProject(task.project_id, assigneeId);
 
-    await this.knex('tasks').where('id', taskId).update({
-      assignee_id: assigneeId,
-      updated_at: new Date(),
-    });
+    const trx = await this.knex.transaction();
+    try {
+      await trx('tasks').where('id', taskId).update({
+        assignee_id: assigneeId,
+        updated_at: new Date(),
+      });
 
-    return {
-      success: true,
-      message: 'Исполнитель назначен',
-      task: await this.getTaskWithDetails(taskId),
-    };
+      return {
+        success: true,
+        message: 'Исполнитель назначен',
+        task: await this.getTaskWithDetails(taskId),
+      };
+    } catch (error) {
+      await trx.rollback();
+      throw error;
+    }
   }
 
   // ================================
@@ -350,7 +377,6 @@ export class TasksService {
         't.*',
         'creator.full_name as creator_name',
         'creator.email as creator_email',
-        'p.title as project_title',
       )
       .leftJoin('users as creator', 't.creator_id', 'creator.id')
       .leftJoin('projects as p', 't.project_id', 'p.id')
@@ -377,7 +403,6 @@ export class TasksService {
         't.*',
         'assignee.full_name as assignee_name',
         'assignee.email as assignee_email',
-        'p.title as project_title',
       )
       .leftJoin('users as assignee', 't.assignee_id', 'assignee.id')
       .leftJoin('projects as p', 't.project_id', 'p.id')
@@ -448,7 +473,6 @@ export class TasksService {
         'creator.email as creator_email',
         'assignee.full_name as assignee_name',
         'assignee.email as assignee_email',
-        'p.title as project_title',
       )
       .leftJoin('users as creator', 't.creator_id', 'creator.id')
       .leftJoin('users as assignee', 't.assignee_id', 'assignee.id')

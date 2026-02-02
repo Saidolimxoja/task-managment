@@ -60,7 +60,11 @@ export class TasksController {
   })
   @ApiBearerAuth('access-token')
   @Get(':id')
-  getTask(@Param('id') taskId: string, @CurrentUser() user) {
+  getTask(
+    @Param('projectId') projectId: string,
+    @Param('id') taskId: string,
+    @CurrentUser() user,
+  ) {
     return this.tasksService.getTaskById(taskId, user);
   }
 
@@ -74,6 +78,7 @@ export class TasksController {
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.ZAM_DIRECTOR, Role.EMPLOYEE) // здесь проверка будет через сервис: creator/assignee
   updateTask(
+    @Param('projectId') projectId: string,
     @Param('id') taskId: string,
     @Body() dto: UpdateTaskDto,
     @CurrentUser() user,
@@ -90,7 +95,11 @@ export class TasksController {
   @Delete(':id')
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.ZAM_DIRECTOR) // сервис проверит creator
-  deleteTask(@Param('id') taskId: string, @CurrentUser() user) {
+  deleteTask(
+    @Param('projectId') projectId: string,
+    @Param('id') taskId: string,
+    @CurrentUser() user,
+  ) {
     return this.tasksService.deleteTask(taskId, user);
   }
 
@@ -104,6 +113,7 @@ export class TasksController {
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.ZAM_DIRECTOR, Role.EMPLOYEE)
   changeStatus(
+    @Param('projectId') projectId: string,
     @Param('id') taskId: string,
     @Body() dto: ChangeStatusDto,
     @CurrentUser() user,
@@ -120,7 +130,11 @@ export class TasksController {
   @Patch(':id/approve')
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.ZAM_DIRECTOR)
-  approveTask(@Param('id') taskId: string, @CurrentUser() user) {
+  approveTask(
+    @Param('projectId') projectId: string,
+    @Param('id') taskId: string,
+    @CurrentUser() user,
+  ) {
     return this.tasksService.approveTask(taskId, user);
   }
 
@@ -133,7 +147,11 @@ export class TasksController {
   @Patch(':id/reject')
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.ZAM_DIRECTOR)
-  rejectTask(@Param('id') taskId: string, @CurrentUser() user) {
+  rejectTask(
+    @Param('projectId') projectId: string,
+    @Param('id') taskId: string,
+    @CurrentUser() user,
+  ) {
     return this.tasksService.rejectTask(taskId, user);
   }
 
@@ -147,6 +165,7 @@ export class TasksController {
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.ZAM_DIRECTOR, Role.DIRECTOR)
   assignTask(
+    @Param('projectId') projectId: string,
     @Param('id') taskId: string,
     @Body() dto: AssignTaskDto,
     @CurrentUser() user,
@@ -161,7 +180,7 @@ export class TasksController {
   })
   @ApiBearerAuth('access-token')
   @Get('/my/assigned')
-  myAssignedTasks(@CurrentUser() user) {
+  myAssignedTasks(@Param('projectId') projectId: string, @CurrentUser() user) {
     return this.tasksService.getMyAssignedTasks(user);
   }
 
@@ -172,7 +191,7 @@ export class TasksController {
   })
   @ApiBearerAuth('access-token')
   @Get('/my/created')
-  myCreatedTasks(@CurrentUser() user) {
+  myCreatedTasks(@Param('projectId') projectId: string, @CurrentUser() user) {
     return this.tasksService.getMyCreatedTasks(user);
   }
 }
