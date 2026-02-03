@@ -30,7 +30,7 @@ export class UsersController {
   })
   @ApiBearerAuth('access-token')
   @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.DIRECTOR, Role.ZAM_DIRECTOR)
   @Get()
   findAll() {
     return this.usersService.findAll();

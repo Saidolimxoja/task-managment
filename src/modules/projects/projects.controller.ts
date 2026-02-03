@@ -29,6 +29,9 @@ export class ProjectsController {
   @ApiOperation({
     summary: 'Получить ВСЕХ Своих Проетов',
   })
+  @ApiBearerAuth('access-token')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.DIRECTOR, Role.ZAM_DIRECTOR)
   @Get()
   GetAllProjects(@CurrentUser() user) {
     return this.projectsService.getAllProjects(user.id, user.role);
@@ -38,6 +41,8 @@ export class ProjectsController {
     summary: 'Создать Проект',
   })
   @ApiBearerAuth('access-token')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.DIRECTOR)
   @Post()
   create(@Body() createProjectDto: CreateProjectDto, @CurrentUser() user: any) {
     return this.projectsService.createProject(createProjectDto, user);
@@ -49,7 +54,7 @@ export class ProjectsController {
   @Post(':id/members')
   @ApiBearerAuth('access-token')
   @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN, Role.DIRECTOR, Role.ZAM_DIRECTOR)
+  @Roles(Role.ADMIN, Role.DIRECTOR,Role.ZAM_DIRECTOR)
   addMember(@Param('id') projectId: string, @Body() dto: AddMembersdto) {
     return this.projectsService.addMember(projectId, dto.userId, dto.role);
   }

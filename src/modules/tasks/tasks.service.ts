@@ -110,6 +110,7 @@ export class TasksService {
         'creator.email as creator_email',
         'assignee.full_name as assignee_name',
         'assignee.email as assignee_email',
+        'p.name as Project_name',
       )
       .leftJoin('users as creator', 't.creator_id', 'creator.id')
       .leftJoin('users as assignee', 't.assignee_id', 'assignee.id')
@@ -233,13 +234,6 @@ export class TasksService {
     if (!canChangeStatus) {
       throw new ForbiddenException(
         'Только исполнитель, заместитель директора или администратор могут менять статус',
-      );
-    }
-
-    // Запрещаем напрямую ставить DONE или REJECTED (для этого есть approve/reject)
-    if (status === TaskStatus.REVIEW || status === TaskStatus.REJECTED) {
-      throw new BadRequestException(
-        'Используйте эндпоинты /approve или /reject для финального статуса',
       );
     }
 
@@ -377,6 +371,7 @@ export class TasksService {
         't.*',
         'creator.full_name as creator_name',
         'creator.email as creator_email',
+        'p.name as Project_name',
       )
       .leftJoin('users as creator', 't.creator_id', 'creator.id')
       .leftJoin('projects as p', 't.project_id', 'p.id')
@@ -473,6 +468,7 @@ export class TasksService {
         'creator.email as creator_email',
         'assignee.full_name as assignee_name',
         'assignee.email as assignee_email',
+        'p.name as Project_name',
       )
       .leftJoin('users as creator', 't.creator_id', 'creator.id')
       .leftJoin('users as assignee', 't.assignee_id', 'assignee.id')

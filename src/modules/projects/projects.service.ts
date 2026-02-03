@@ -22,6 +22,8 @@ export class ProjectsService {
     await this.knex('project_members').where({ id: memberId }).del();
   }
 
+
+
   async getAllProjects(userId: string, userRole: string) {
     // 1. Получаем проекты пользователя
     const projects = await this.knex('projects as p')

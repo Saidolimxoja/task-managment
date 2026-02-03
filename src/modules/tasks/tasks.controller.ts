@@ -44,7 +44,7 @@ export class TasksController {
   @ApiBearerAuth('access-token')
   @Post()
   @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN, Role.ZAM_DIRECTOR, Role.EMPLOYEE)
+  @Roles(Role.ADMIN, Role.ZAM_DIRECTOR, Role.EMPLOYEE,Role.DIRECTOR)
   createTask(
     @Param('projectId') projectId: string,
     @Body() dto: CreateTaskDto,
