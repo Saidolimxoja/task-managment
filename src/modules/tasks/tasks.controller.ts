@@ -25,8 +25,7 @@ import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
 
-  // -------------------------------
-  // 1. Получить все задачи проекта
+  
   @ApiOperation({
     summary: 'Получить ВСЕХ Своих TASKS',
   })
@@ -36,8 +35,7 @@ export class TasksController {
     return this.tasksService.getAllTasks(projectId, user);
   }
 
-  // -------------------------------
-  // 2. Создать задачу (ADMIN, ZAM_DIRECTOR, EMPLOYEE)
+
   @ApiOperation({
     summary: 'Создать задачу (ADMIN, ZAM_DIRECTOR, EMPLOYEE)',
   })
@@ -53,8 +51,7 @@ export class TasksController {
     return this.tasksService.createTask(projectId, dto, user);
   }
 
-  // -------------------------------
-  // 3. Получить детали задачи
+
   @ApiOperation({
     summary: 'Получить Детали Задачи',
   })
@@ -68,15 +65,14 @@ export class TasksController {
     return this.tasksService.getTaskById(taskId, user);
   }
 
-  // -------------------------------
-  // 4. Обновить задачу (Creator, Assignee, ADMIN)
+
   @ApiOperation({
     summary: 'Обновить задачу (Creator, Assignee, ADMIN)',
   })
   @ApiBearerAuth('access-token')
   @Patch(':id')
   @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN, Role.ZAM_DIRECTOR, Role.EMPLOYEE) // здесь проверка будет через сервис: creator/assignee
+  @Roles(Role.ADMIN, Role.ZAM_DIRECTOR, Role.EMPLOYEE) 
   updateTask(
     @Param('projectId') projectId: string,
     @Param('id') taskId: string,
@@ -86,15 +82,14 @@ export class TasksController {
     return this.tasksService.updateTask(taskId, dto, user);
   }
 
-  // -------------------------------
-  // 5. Удалить задачу (ADMIN, Creator)
+
   @ApiOperation({
     summary: 'Удалить задачу (ADMIN, Creator)',
   })
   @ApiBearerAuth('access-token')
   @Delete(':id')
   @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN, Role.ZAM_DIRECTOR) // сервис проверит creator
+  @Roles(Role.ADMIN, Role.ZAM_DIRECTOR) 
   deleteTask(
     @Param('projectId') projectId: string,
     @Param('id') taskId: string,
@@ -103,8 +98,6 @@ export class TasksController {
     return this.tasksService.deleteTask(taskId, user);
   }
 
-  // -------------------------------
-  // 6. Изменить статус задачи (Assignee, ADMIN, ZAM_DIRECTOR)
   @ApiOperation({
     summary: 'Изменить статус задачи (Assignee, ADMIN, ZAM_DIRECTOR)',
   })
@@ -119,8 +112,8 @@ export class TasksController {
     return this.tasksService.changeStatus(taskId, dto.status, user);
   }
 
-  // -------------------------------
-  // 7. Утвердить задачу → APPROVED (ZAM_DIRECTOR, ADMIN)
+
+
   @ApiOperation({
     summary: 'Утвердить задачу → APPROVED (ZAM_DIRECTOR, ADMIN)',
   })
@@ -136,8 +129,7 @@ export class TasksController {
     return this.tasksService.approveTask(taskId, user);
   }
 
-  // -------------------------------
-  // 8. Отклонить задачу → REJECTED (ZAM_DIRECTOR, ADMIN)
+
   @ApiOperation({
     summary: 'Отклонить задачу → REJECTED (ZAM_DIRECTOR, ADMIN)',
   })
@@ -153,8 +145,7 @@ export class TasksController {
     return this.tasksService.rejectTask(taskId, user);
   }
 
-  // -------------------------------
-  // 9. Назначить исполнителя (ADMIN, ZAM_DIRECTOR, Creator)
+
   @ApiOperation({
     summary: 'Назначить исполнителя (ADMIN, ZAM_DIRECTOR, Creator)',
   })
@@ -171,8 +162,7 @@ export class TasksController {
     return this.tasksService.assignTask(taskId, dto.assigneeId, user);
   }
 
-  // -------------------------------
-  // 10. Мои назначенные задачи
+
   @ApiOperation({
     summary: 'Мои назначенные задачи',
   })
@@ -182,8 +172,6 @@ export class TasksController {
     return this.tasksService.getMyAssignedTasks(user);
   }
 
-  // -------------------------------
-  // 11. Мои созданные задачи
   @ApiOperation({
     summary: 'Мои созданные задачи',
   })

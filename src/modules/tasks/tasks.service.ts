@@ -19,11 +19,8 @@ export class TasksService {
     return this.knexService.knex;
   }
 
-  // ================================
-  // 1. Получить все задачи проекта
-  // ================================
   async getAllTasks(projectId: string, user: any) {
-    // Проверяем доступ к проекту
+
     await this.checkProjectAccess(projectId, user.id);
 
     const tasks = await this.knex('tasks as t')
@@ -47,15 +44,12 @@ export class TasksService {
     };
   }
 
-  // ================================
-  // 2. Создать задачу
-  // ================================
   async createTask(projectId: string, dto: CreateTaskDto, user: any) {
-    // Проверяем доступ к проекту
+
     await this.checkProjectAccess(projectId, user.id);
 
     const trx = await this.knex.transaction();
-    // Проверяем, что проект активен
+
     const project = await this.knex('projects')
       .where('id', projectId)
       .whereNull('end_date')
@@ -65,7 +59,7 @@ export class TasksService {
       throw new BadRequestException('Проект неактивен или не найден');
     }
 
-    // Если указан assignee - проверяем, что он участник проекта
+
     if (dto.assigneeId) {
       await this.checkUserInProject(projectId, dto.assigneeId);
     }
@@ -99,9 +93,6 @@ export class TasksService {
     }
   }
 
-  // ================================
-  // 3. Получить детали задачи
-  // ================================
   async getTaskById(taskId: string, user: any) {
     const task = await this.knex('tasks as t')
       .select(
@@ -122,7 +113,7 @@ export class TasksService {
       throw new NotFoundException('Задача не найдена');
     }
 
-    // Проверяем доступ к проекту задачи
+
     await this.checkProjectAccess(task.project_id, user.id);
 
     return {
@@ -131,9 +122,7 @@ export class TasksService {
     };
   }
 
-  // ================================
-  // 4. Обновить задачу
-  // ================================
+
   async updateTask(taskId: string, dto: UpdateTaskDto, user: any) {
     const task = await this.knex('tasks').where('id', taskId).first();
 
@@ -141,7 +130,7 @@ export class TasksService {
       throw new NotFoundException('Задача не найдена');
     }
 
-    // Проверяем права: creator, assignee или ADMIN
+
     const canUpdate =
       user.role === 'ADMIN' ||
       task.creator_id === user.id ||
@@ -153,7 +142,6 @@ export class TasksService {
       );
     }
 
-    // Если меняется assignee - проверяем участника проекта
     if (dto.assigneeId && dto.assigneeId !== task.assignee_id) {
       await this.checkUserInProject(task.project_id, dto.assigneeId);
     }
@@ -176,9 +164,7 @@ export class TasksService {
     };
   }
 
-  // ================================
-  // 5. Удалить задачу
-  // ================================
+
   async deleteTask(taskId: string, user: any) {
     const task = await this.knex('tasks').where('id', taskId).first();
 
@@ -186,7 +172,7 @@ export class TasksService {
       throw new NotFoundException('Задача не найдена');
     }
 
-    // Только ADMIN или creator могут удалить
+    
     const canDelete = user.role === 'ADMIN' || task.creator_id === user.id;
 
     if (!canDelete) {
@@ -210,9 +196,6 @@ export class TasksService {
     }
   }
 
-  // ================================
-  // 6. Изменить статус задачи
-  // ================================
   async changeStatus(taskId: string, status: string, user: any) {
     const task = await this.knex('tasks').where('id', taskId).first();
 
@@ -220,12 +203,11 @@ export class TasksService {
       throw new NotFoundException('Задача не найдена');
     }
 
-    // Проверяем валидность статуса
     if (!Object.values(TaskStatus).includes(status as TaskStatus)) {
       throw new BadRequestException('Некорректный статус задачи');
     }
 
-    // Проверяем права: assignee, ADMIN или ZAM_DIRECTOR
+
 
 
     const updateData: any = {
@@ -242,9 +224,6 @@ export class TasksService {
     };
   }
 
-  // ================================
-  // 7. Утвердить задачу → DONE
-  // ================================
   async approveTask(taskId: string, user: any) {
     const task = await this.knex('tasks').where('id', taskId).first();
 
@@ -252,7 +231,7 @@ export class TasksService {
       throw new NotFoundException('Задача не найдена');
     }
 
-    // Проверяем, что задача в статусе IN_REVIEW
+
     if (task.status !== TaskStatus.REVIEW) {
       throw new BadRequestException(
         'Можно утвердить только задачи в статусе IN_REVIEW',
@@ -280,9 +259,6 @@ export class TasksService {
     }
   }
 
-  // ================================
-  // 8. Отклонить задачу → REJECTED
-  // ================================
   async rejectTask(taskId: string, user: any) {
     const task = await this.knex('tasks').where('id', taskId).first();
 
@@ -290,7 +266,7 @@ export class TasksService {
       throw new NotFoundException('Задача не найдена');
     }
 
-    // Проверяем, что задача в статусе IN_REVIEW
+
     if (task.status !== TaskStatus.REVIEW) {
       throw new BadRequestException(
         'Можно отклонить только задачи в статусе IN_REVIEW',
@@ -309,9 +285,6 @@ export class TasksService {
     };
   }
 
-  // ================================
-  // 9. Назначить исполнителя
-  // ================================
   async assignTask(taskId: string, assigneeId: string, user: any) {
     const task = await this.knex('tasks').where('id', taskId).first();
 
@@ -319,7 +292,7 @@ export class TasksService {
       throw new NotFoundException('Задача не найдена');
     }
 
-    // Проверяем права
+
     const canAssign =
       user.role === 'ADMIN' ||
       user.role === 'ZAM_DIRECTOR' ||
@@ -332,7 +305,7 @@ export class TasksService {
       );
     }
 
-    // Проверяем, что assignee является участником проекта
+
     await this.checkUserInProject(task.project_id, assigneeId);
 
     const trx = await this.knex.transaction();
@@ -343,7 +316,7 @@ export class TasksService {
         updated_at: new Date(),
       });
 
-      await trx.commit(); // ← ВОТ ЭТО ДОБАВЬ!
+      await trx.commit(); 
 
       return {
         success: true,
@@ -356,9 +329,7 @@ export class TasksService {
     }
   }
 
-  // ================================
-  // 10. Мои назначенные задачи
-  // ================================
+
   async getMyAssignedTasks(user: any) {
     const tasks = await this.knex('tasks as t')
       .select(
@@ -383,9 +354,7 @@ export class TasksService {
     };
   }
 
-  // ================================
-  // 11. Мои созданные задачи
-  // ================================
+
   async getMyCreatedTasks(user: any) {
     const tasks = await this.knex('tasks as t')
       .select(
@@ -408,13 +377,9 @@ export class TasksService {
     };
   }
 
-  // ================================
-  // ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ
-  // ================================
 
-  /**
-   * Проверка доступа пользователя к проекту
-   */
+  //helpful methods 
+
   private async checkProjectAccess(projectId: string, userId: string) {
     const access = await this.knex('projects as p')
       .select('p.id')
@@ -430,9 +395,7 @@ export class TasksService {
     }
   }
 
-  /**
-   * Проверка, что пользователь является участником проекта
-   */
+  
   private async checkUserInProject(projectId: string, userId: string) {
     const isMember = await this.knex('project_members')
       .where('project_id', projectId)
@@ -451,9 +414,7 @@ export class TasksService {
     }
   }
 
-  /**
-   * Получить задачу с полными деталями
-   */
+ //GET TASK with deatils
   private async getTaskWithDetails(taskId: string) {
     const task = await this.knex('tasks as t')
       .select(
@@ -473,9 +434,7 @@ export class TasksService {
     return this.formatTask(task);
   }
 
-  /**
-   * Форматирование задачи для ответа
-   */
+// SHU Ko`rinishda qaytaramiz
   private formatTask(task: any) {
     return {
       id: task.id,
