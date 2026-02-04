@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -22,117 +23,63 @@ export class ProjectsService {
     await this.knex('project_members').where({ id: memberId }).del();
   }
 
-
-
   async getAllProjects(userId: string, userRole: string) {
-    // 1. Получаем проекты пользователя
-    const projects = await this.knex('projects as p')
+    // Базовый запрос с подсчетами
+    let query = this.knex('projects as p')
       .select(
-        'p.*',
-        'u.email as creator_email',
-        'u.full_name as creator_name',
-        this.knex.raw(
-          `
-        CASE
-          WHEN p.owner_id = ? THEN 'OWNER'
-          WHEN pm.role IS NOT NULL THEN pm.role
-          ELSE 'MEMBER'
-        END AS user_role
-        `,
-          [userId],
-        ),
-        this.knex.raw(
-          `(SELECT COUNT(*) FROM tasks WHERE project_id = p.id) AS task_count`,
-        ),
-        this.knex.raw(
-          `(SELECT COUNT(*) FROM tasks WHERE project_id = p.id AND status = 'DONE') AS completed_tasks`,
-        ),
+        'p.id',
+        'p.name',
+        'p.description',
+        'p.code',
+        'p.owner_id as ownerId',
+        'p.status',
+        'p.start_date as startDate',
+        'p.end_date as endDate',
+        'p.created_at as createdAt',
+        'p.updated_at as updatedAt',
+        'owner.full_name as ownerName',
+        'owner.email as ownerEmail',
+        this.knex.raw('COUNT(DISTINCT pm.user_id) as "membersCount"'),
+        this.knex.raw('COALESCE(COUNT(DISTINCT t.id), 0) as "tasksCount"'),
       )
-      .leftJoin('users as u', 'p.owner_id', 'u.id')
-      .leftJoin('project_members as pm', function () {
-        this.on('pm.project_id', '=', 'p.id').andOnVal(
-          'pm.user_id',
-          '=',
-          userId,
-        );
-      })
-      .whereNull('p.end_date')
-      .where(function () {
-        this.where('p.owner_id', userId).orWhere('pm.user_id', userId);
-      })
-      .orderBy('p.created_at', 'desc');
+      .leftJoin('users as owner', 'p.owner_id', 'owner.id')
+      .leftJoin('project_members as pm', 'p.id', 'pm.project_id')
+      .leftJoin('tasks as t', 'p.id', 't.project_id')
+      .groupBy(
+        'p.id',
+        'p.name',
+        'p.description',
+        'p.code',
+        'p.owner_id',
+        'p.status',
+        'p.start_date',
+        'p.end_date',
+        'p.created_at',
+        'p.updated_at',
+        'owner.full_name',
+        'owner.email',
+      );
 
-    // 2. Если ADMIN или DIRECTOR - получаем участников
-    let membersByProject = new Map();
-
-    if (userRole === 'ADMIN' || userRole === 'DIRECTOR') {
-      const projectIds = projects.map((p) => p.id);
-
-      if (projectIds.length > 0) {
-        // Один запрос для всех участников всех проектов
-        const allMembers = await this.knex('project_members as pm')
-          .select(
-            'pm.project_id',
-            'pm.user_id',
-            'pm.role as member_role',
-            'pm.joined_at',
-            'u.full_name',
-            'u.email',
-          )
-          .leftJoin('users as u', 'pm.user_id', 'u.id')
-          .whereIn('pm.project_id', projectIds)
-          .orderBy('pm.joined_at', 'asc');
-
-        // Группируем по project_id
-        for (const member of allMembers) {
-          if (!membersByProject.has(member.project_id)) {
-            membersByProject.set(member.project_id, []);
-          }
-          membersByProject.get(member.project_id).push({
-            user_id: member.user_id,
-            full_name: member.full_name,
-            email: member.email,
-            role: member.member_role,
-            joined_at: member.joined_at,
-          });
-        }
-      }
+    // Фильтрация по роли
+    if (userRole !== 'ADMIN') {
+      query = query.where(function () {
+        this.where('p.owner_id', userId).orWhereExists(function () {
+          this.select('*')
+            .from('project_members as pm2')
+            .whereRaw('pm2.project_id = p.id')
+            .andWhere('pm2.user_id', userId);
+        });
+      });
     }
 
-    // 3. Формируем ответ
+    const projects = await query;
+
     return {
       success: true,
-      message: projects.length
-        ? 'Проекты успешно получены'
-        : 'У вас пока нет проектов',
-      projects: projects.map((p) => {
-        const baseProject = {
-          id: p.id,
-          title: p.title,
-          description: p.description,
-          status: p.status,
-          user_role: p.user_role,
-          task_count: Number(p.task_count) || 0,
-          completed_tasks: Number(p.completed_tasks) || 0,
-          owner_details: {
-            full_name: p.creator_name,
-            email: p.creator_email,
-          },
-          created_at: p.created_at,
-          updated_at: p.updated_at,
-        };
-
-        // Добавляем members только для ADMIN и DIRECTOR
-        if (userRole === 'ADMIN' || userRole === 'DIRECTOR') {
-          return {
-            ...baseProject,
-            members: membersByProject.get(p.id) || [],
-          };
-        }
-
-        return baseProject;
-      }),
-      total: projects.length,
+      data: {
+        projects,
+        total: projects.length,
+      },
     };
   }
 
@@ -279,5 +226,52 @@ export class ProjectsService {
     }
 
     throw new ForbiddenException('Недостаточно прав для удаления участника');
+  }
+
+  // projects.service.ts
+
+  async getProjectMembers(projectId: string, user: any) {
+    // Проверка что projectId валидный UUID
+    if (!projectId || projectId === 'undefined') {
+      throw new BadRequestException('Некорректный ID проекта');
+    }
+
+    // Проверяем существование проекта
+    const project = await this.knex('projects').where('id', projectId).first();
+
+    if (!project) {
+      throw new NotFoundException('Проект не найден');
+    }
+
+    // Проверяем доступ
+    const hasAccess = await this.knex('project_members')
+      .where({ project_id: projectId, user_id: user.id })
+      .first();
+
+    const isOwner = project.owner_id === user.id;
+
+    if (!hasAccess && !isOwner && user.role !== 'ADMIN') {
+      throw new ForbiddenException('Нет доступа к этому проекту');
+    }
+
+    // Получаем участников
+    const members = await this.knex('project_members as pm')
+      .select(
+        'pm.id',
+        'pm.user_id',
+        'pm.role',
+        'pm.joined_at',
+        'u.full_name',
+        'u.email',
+      )
+      .leftJoin('users as u', 'pm.user_id', 'u.id')
+      .where('pm.project_id', projectId)
+      .orderBy('pm.joined_at', 'asc');
+
+    return {
+      success: true,
+      members,
+      total: members.length,
+    };
   }
 }

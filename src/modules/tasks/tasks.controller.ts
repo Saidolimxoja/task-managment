@@ -44,7 +44,7 @@ export class TasksController {
   @ApiBearerAuth('access-token')
   @Post()
   @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN, Role.ZAM_DIRECTOR, Role.EMPLOYEE,Role.DIRECTOR)
+  @Roles(Role.ADMIN, Role.ZAM_DIRECTOR, Role.EMPLOYEE, Role.DIRECTOR)
   createTask(
     @Param('projectId') projectId: string,
     @Body() dto: CreateTaskDto,
@@ -110,8 +110,6 @@ export class TasksController {
   })
   @ApiBearerAuth('access-token')
   @Patch(':id/status')
-  @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN, Role.ZAM_DIRECTOR, Role.EMPLOYEE)
   changeStatus(
     @Param('projectId') projectId: string,
     @Param('id') taskId: string,

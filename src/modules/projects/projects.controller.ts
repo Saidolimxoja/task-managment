@@ -30,8 +30,6 @@ export class ProjectsController {
     summary: 'Получить ВСЕХ Своих Проетов',
   })
   @ApiBearerAuth('access-token')
-  @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN, Role.DIRECTOR, Role.ZAM_DIRECTOR)
   @Get()
   GetAllProjects(@CurrentUser() user) {
     return this.projectsService.getAllProjects(user.id, user.role);
@@ -86,6 +84,20 @@ export class ProjectsController {
   ) {
     return this.projectsService.deleteMember(projectId, UserId, user);
   }
+
+
+
+
+  @Get(':id/members')
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth('access-token')
+@ApiOperation({ summary: 'Получить участников проекта' })
+getProjectMembers(
+  @Param('id') projectId: string,
+  @CurrentUser() user,
+) {
+  return this.projectsService.getProjectMembers(projectId, user);
+}
 }
 
 /* GET    /api/v1/projects                 # Мои проекты (Все роли)      ++++++

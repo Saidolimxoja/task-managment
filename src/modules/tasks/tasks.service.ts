@@ -226,16 +226,7 @@ export class TasksService {
     }
 
     // Проверяем права: assignee, ADMIN или ZAM_DIRECTOR
-    const canChangeStatus =
-      user.role === 'ADMIN' ||
-      user.role === 'ZAM_DIRECTOR' ||
-      task.assignee_id === user.id;
 
-    if (!canChangeStatus) {
-      throw new ForbiddenException(
-        'Только исполнитель, заместитель директора или администратор могут менять статус',
-      );
-    }
 
     const updateData: any = {
       status,
@@ -328,7 +319,7 @@ export class TasksService {
       throw new NotFoundException('Задача не найдена');
     }
 
-    // Проверяем права: creator, ADMIN, ZAM_DIRECTOR, DIRECTOR
+    // Проверяем права
     const canAssign =
       user.role === 'ADMIN' ||
       user.role === 'ZAM_DIRECTOR' ||
@@ -345,11 +336,14 @@ export class TasksService {
     await this.checkUserInProject(task.project_id, assigneeId);
 
     const trx = await this.knex.transaction();
+
     try {
       await trx('tasks').where('id', taskId).update({
         assignee_id: assigneeId,
         updated_at: new Date(),
       });
+
+      await trx.commit(); // ← ВОТ ЭТО ДОБАВЬ!
 
       return {
         success: true,

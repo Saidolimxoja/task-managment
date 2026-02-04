@@ -1,0 +1,7 @@
+{
+  "a-file-icon-vscode.arrowTheme": "triangle",
+  "a-file-icon-vscode.folderTheme": "none",
+  "a-file-icon-vscode.opacity": 0,
+  "a-file-icon-vscode.activeIconPacks": ["ngrx", "nest"],
+  "a-file-icon-vscode.saturation": 0
+}
